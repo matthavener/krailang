@@ -10,17 +10,18 @@
         terminate/2,
         code_change/3]).
 
--record(state, {parent, sock}).
+-record(state, {parent, sock, chan}).
 
 start_link(Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
-init([Parent, Server, Port, User] = Args) ->
-    io:format("starting~p~n", [Args]),
+init([Parent, Server, Port, User, Chan] = Args) ->
+    io:format("starting irc ~p~n", [Args]),
     {ok, Sock} = gen_tcp:connect(Server, Port, [binary, {packet, line}]),
-    self() ! {irc, user, User ++ " * *", "wootles"},
-    self() ! {irc, nick, User },
-    {ok, #state{parent=Parent, sock=Sock}}.
+    send(Sock, user, User ++ " * *", "lul"),
+    send(Sock, nick, User),
+    %% chan in binary for matching PRIVMSG
+    {ok, #state{parent=Parent, sock=Sock, chan=list_to_binary(Chan)}}.
 
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
@@ -28,28 +29,23 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(Info, #state{parent=Parent, sock=Sock} = State) ->
+handle_info(Info, #state{parent=Parent, sock=Sock, chan=Chan} = State) ->
     case Info of 
-        {irc, privmsg, Channel, Txt} ->
-            gen_tcp:send(Sock, build_line(privmsg, Channel, Txt));
-        {irc, user, Username, Txt} ->
-            io:format("send ~p~n", [build_line(user, Username, Txt)]),
-            gen_tcp:send(Sock, build_line(user, Username, Txt));
-        {irc, join, Chan} ->
-            io:format("send ~p~n", [build_line(user, Chan)]),
-            gen_tcp:send(Sock, build_line(user, Chan));
-        {irc, nick, Username} ->
-            io:format("send ~p~n", [build_line(nick, Username)]),
-            gen_tcp:send(Sock, build_line(nick, Username));
+        {irc, say, Txt} ->
+            send(Sock, privmsg, Chan, list_to_binary(Txt));
         {tcp, Sock, Data} -> 
 %            io:format("got ~p~n", [Data]),
             Line = parse_line(Data),
-%            io:format("parsed ~p~n", [Line]),
+            io:format("parsed ~p~n", [Line]),
             case Line of  
                 {<<"PING">>, _, Token, _, _} ->
-                    gen_tcp:send(Sock, build_line(pong, "", Token));
-                Other ->
-                    Parent ! { self(), Other }
+                    send(Sock, pong, "", Token);
+                {<<"376">>, _, _, _, _} ->
+                    send(Sock, join, Chan);
+                {<<"PRIVMSG">>, [Chan], [Msg], User, _} ->
+                    Parent ! {irc, self(), binary_to_list(User), binary_to_list(Msg) };
+                _ ->
+                    ok
             end;
         Other ->
             io:format("weird ~p ~p ~n", [Other, State]),
@@ -65,10 +61,10 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 
-build_line(Command, Arg) ->
-    list_to_binary([string:to_upper(atom_to_list(Command)), " ", Arg, "\r\n"]).
-build_line(Command, Arg, Txt) ->
-    list_to_binary([string:to_upper(atom_to_list(Command)), " ", Arg, " :", Txt, "\r\n"]).
+send(Sock, Command, Arg) ->
+    ok = gen_tcp:send(Sock, list_to_binary([string:to_upper(atom_to_list(Command)), " ", Arg, "\r\n"])).
+send(Sock, Command, Arg, Txt) ->
+    ok = gen_tcp:send(Sock, list_to_binary([string:to_upper(atom_to_list(Command)), " ", Arg, " :", Txt, "\r\n"])).
 
 parse_line(<<":", Txt/binary>>) ->
     [Attr|Msg] = binary:split(Txt, <<":">>),
