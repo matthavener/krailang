@@ -32,13 +32,20 @@ handle_cast(_Msg, State) ->
 
 handle_info(Info, #state{bot=Bot} = State) ->
     case Info of 
+        {irc, Irc, _User, "I CALL UPON THE POWER OF THE SPREADSHEET"} ->
+            Irc ! {irc, say, "loading hacking tools"},
+            {ok, C} = krailang_bot:get_opinions(Bot),
+            Irc ! {irc, say, integer_to_list(C) ++ " loaded"},
+            {noreply, State};
         {irc, Irc, User, Msg} ->
+            io:format("~p~n haters", [Msg]),
             Rs = krailang_bot:make_responses(Bot, Msg),
-            lists:map(fun(R) -> Irc ! {irc, say, User ++ ": " ++ R} end, Rs); 
+            lists:map(fun(R) -> Irc ! {irc, say, User ++ ": " ++ R} end, Rs),
+            {noreply, State};
         Other ->
-            io:format("weird ~p ~p ~n", [Other, State])
-    end,
-    {noreply, State}.
+            io:format("weird ~p ~p ~n", [Other, State]),
+            {noreply, State}
+    end.
 
 terminate(_Reason, _State) ->
     ok.

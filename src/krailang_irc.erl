@@ -32,11 +32,11 @@ handle_cast(_Msg, State) ->
 handle_info(Info, #state{parent=Parent, sock=Sock, chan=Chan} = State) ->
     case Info of 
         {irc, say, Txt} ->
-            send(Sock, privmsg, Chan, list_to_binary(Txt));
+            send(Sock, privmsg, Chan, binary:replace(list_to_binary(Txt), <<"\r\n">>,<<"">>));
         {tcp, Sock, Data} -> 
 %            io:format("got ~p~n", [Data]),
             Line = parse_line(Data),
-            io:format("parsed ~p~n", [Line]),
+%            io:format("parsed ~p~n", [Line]),
             case Line of  
                 {<<"PING">>, _, Token, _, _} ->
                     send(Sock, pong, "", Token);
@@ -67,7 +67,8 @@ send(Sock, Command, Arg, Txt) ->
     ok = gen_tcp:send(Sock, list_to_binary([string:to_upper(atom_to_list(Command)), " ", Arg, " :", Txt, "\r\n"])).
 
 parse_line(<<":", Txt/binary>>) ->
-    [Attr|Msg] = binary:split(Txt, <<":">>),
+    TxtS = binary:replace(Txt, <<"\r\n">>,<<"">>),
+    [Attr|Msg] = binary:split(TxtS, <<":">>),
     [User,Command|Args] = binary:split(Attr, <<" ">>, [global, trim]),
     [UserName|Host] = binary:split(User, <<"!">>),
     {Command, Args, Msg, UserName, Host};
