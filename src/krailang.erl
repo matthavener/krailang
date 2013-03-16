@@ -38,7 +38,6 @@ handle_info(Info, #state{bot=Bot} = State) ->
             Irc ! {irc, say, integer_to_list(C) ++ " loaded"},
             {noreply, State};
         {irc, Irc, User, Msg} ->
-            io:format("~p~n haters", [Msg]),
             Rs = krailang_bot:make_responses(Bot, Msg),
             lists:map(fun(R) -> Irc ! {irc, say, User ++ ": " ++ R} end, Rs),
             {noreply, State};

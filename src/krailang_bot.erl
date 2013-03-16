@@ -76,7 +76,7 @@ make_responses_(Opinions, Txt) ->
                 case re:run(Txt, Regex) of
                     {match, [_,_,{B, E}|_]} = M->
                         io:format("matched ~p~n",[{M, Txt, Res}]),
-                        {[string:substr(Txt, B+1, E) ++ "? " ++ Res|AccRes], [Op, AccOps]};
+                        {[string:substr(Txt, B+1, E) ++ "? " ++ Res|AccRes], [Op|AccOps]};
                     nomatch ->
                         Acc
                 end

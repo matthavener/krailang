@@ -32,7 +32,7 @@ handle_cast(_Msg, State) ->
 handle_info(Info, #state{parent=Parent, sock=Sock, chan=Chan} = State) ->
     case Info of 
         {irc, say, Txt} ->
-            send(Sock, privmsg, Chan, binary:replace(list_to_binary(Txt), <<"\r\n">>,<<"">>));
+            send(Sock, privmsg, Chan, binary:replace(list_to_binary(Txt), [<<"\r">>,<<"\n">>],<<" ">>, [global]));
         {tcp, Sock, Data} -> 
 %            io:format("got ~p~n", [Data]),
             Line = parse_line(Data),
