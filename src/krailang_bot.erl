@@ -17,10 +17,6 @@
 %% interface
 
 start_link() ->
-    start_app(inets),
-    start_app(crypto),
-    start_app(public_key),
-    start_app(ssl),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 make_responses(Pid, Txt) ->
     gen_server:call(Pid, {make_responses, Txt}).
@@ -31,7 +27,9 @@ get_opinions(Pid) ->
 
 init([] = Args) ->
     io:format("starting bot~p~n", [Args]),
-    {ok, Opinions} = parse_opinions(get_opinions_sync()),
+%    timer:sleep(1000),
+%    {ok, Opinions} = parse_opinions(get_opinions_sync()),
+    Opinions=[],
     {ok, #state{opinions=Opinions, timers=[]}}.
 
 handle_call({make_responses, Txt}, _From, #state{opinions=Opinions,timers=Timers} = State) ->
@@ -56,7 +54,7 @@ handle_info(Info, #state{opinions=Opinions, timers=Timers} = State) ->
             {noreply, State#state{opinions=[O|Opinions]}};
         Other ->
             io:format("weird ~p ~p ~n", [Other, State]),
-            {noreply, State}
+            exit([Other, State])
     end.
 
 terminate(_Reason, _State) ->

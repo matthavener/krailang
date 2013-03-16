@@ -43,7 +43,7 @@ handle_info(Info, #state{bot=Bot} = State) ->
             {noreply, State};
         Other ->
             io:format("weird ~p ~p ~n", [Other, State]),
-            {noreply, State}
+            exit([Other, State])
     end.
 
 terminate(_Reason, _State) ->
