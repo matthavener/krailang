@@ -21,7 +21,7 @@ start_link() ->
 
 init([]) ->
     {ok, Bot} = krailang_bot:start_link(),
-    {ok, _} = krailang_irc_sup:start_link([self(),"irc.collegiumv.org", 8080, "krailOS", "#main"]),
+    {ok, _} = krailang_irc_sup:start_link([self(),"irc.collegiumv.org", 6667, "krailOS", "#main"]),
     {ok, #state{bot=Bot}}.
 
 handle_call(_Request, _From, State) ->
