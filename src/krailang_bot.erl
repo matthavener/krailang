@@ -27,9 +27,7 @@ get_opinions(Pid) ->
 
 init([] = Args) ->
     io:format("starting bot~p~n", [Args]),
-%    timer:sleep(1000),
-%    {ok, Opinions} = parse_opinions(get_opinions_sync()),
-    Opinions=[],
+    {ok, Opinions} = parse_opinions(get_opinions_sync()),
     {ok, #state{opinions=Opinions, timers=[]}}.
 
 handle_call({make_responses, Txt}, _From, #state{opinions=Opinions,timers=Timers} = State) ->
@@ -92,10 +90,3 @@ parse_opinions(Txt) ->
                         Acc
                 end
             end).
-
-start_app(App) ->
-    case application:start(App) of
-        ok -> ok;
-        { error, already_started} -> ok;
-        E -> E
-    end.
